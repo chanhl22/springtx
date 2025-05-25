@@ -2,7 +2,6 @@ package hello.springtx.apply;
 
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
-import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -10,50 +9,49 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 @Slf4j
 @SpringBootTest
-public class TxBasicTest {
+public class TxLevelTest {
 
     @Autowired
-    BasicService basicService;
+    LevelService service;
 
     @Test
-    void proxyCheck() {
-        //BasicService$$EnhancerBySpringCGLIB...
-        log.info("aop class={}", basicService.getClass());
-        assertThat(AopUtils.isAopProxy(basicService)).isTrue();
-    }
-
-    @Test
-    void txTest() {
-        basicService.tx();
-        basicService.nonTx();
+    void orderTest() {
+        service.write();
+        service.read();
     }
 
     @TestConfiguration
-    static class TxApplyBasicConfig {
+    static class TxApplyLevelConfig {
         @Bean
-        BasicService basicService() {
-            return new BasicService();
+        LevelService levelService() {
+            return new LevelService();
         }
     }
 
     @Slf4j
-    static class BasicService {
+    @Transactional(readOnly = true)
+    static class LevelService {
 
-        @Transactional
-        public void tx() {
-            log.info("call tx");
-            boolean txActive = TransactionSynchronizationManager.isActualTransactionActive();
-            log.info("tx active={}", txActive);
+        @Transactional(readOnly = false)
+        public void write() {
+            log.info("call write");
+            printTxInfo();
         }
 
-        public void nonTx() {
-            log.info("call nonTx");
+        public void read() {
+            log.info("call read");
+            printTxInfo();
+        }
+
+        private void printTxInfo() {
             boolean txActive = TransactionSynchronizationManager.isActualTransactionActive();
             log.info("tx active={}", txActive);
+
+            boolean readOnly =TransactionSynchronizationManager.isCurrentTransactionReadOnly();
+            log.info("tx readOnly={}", readOnly);
         }
     }
+
 }
